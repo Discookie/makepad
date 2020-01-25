@@ -575,6 +575,16 @@ impl FileTree {
             }
             counter += 1;
         }
+
+        // handle cursor for the rest of the view
+        match event.hits(cx, self.view.get_view_area(cx), HitOpt::default()) {
+            Event::FingerHover(fe) => {
+                if fe.hover_state == HoverState::In {
+                    cx.set_hover_mouse_cursor(MouseCursor::Default);
+                }
+            },
+            _ => ()
+        }
         
         //unmark non selected nodes and also set even/odd animations to make sure its rendered properly
         if unmark_nodes {

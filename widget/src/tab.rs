@@ -219,9 +219,9 @@ impl Tab {
                 return TabEvent::Select;
             },
             Event::FingerHover(fe) => {
-                cx.set_hover_mouse_cursor(MouseCursor::Hand);
                 match fe.hover_state {
                     HoverState::In => {
+                        cx.set_hover_mouse_cursor(MouseCursor::Hand);
                         if self._is_down {
                             self.animator.play_anim(cx, self.anim_down(cx));
                         }

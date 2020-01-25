@@ -233,9 +233,9 @@ impl ListLogic {
                 Event::FingerMove(_fe) => {
                 },
                 Event::FingerHover(fe) => {
-                    cx.set_hover_mouse_cursor(MouseCursor::Hand);
                     match fe.hover_state {
                         HoverState::In => {
+                            cx.set_hover_mouse_cursor(MouseCursor::Hand);
                             cb(cx, ListLogicEvent::Over, item, counter);
                         },
                         HoverState::Out => {

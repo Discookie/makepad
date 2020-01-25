@@ -34,13 +34,15 @@ impl ButtonLogic {
                 return ButtonEvent::Down;
             },
             Event::FingerHover(fe) => {
-                cx.set_hover_mouse_cursor(MouseCursor::Hand);
                 match fe.hover_state {
-                    HoverState::In => if fe.any_down {
-                        cb(cx, ButtonLogicEvent::Down, area);
-                    }
-                    else {
-                        cb(cx, ButtonLogicEvent::Over, area);
+                    HoverState::In => {
+                        cx.set_hover_mouse_cursor(MouseCursor::Hand);
+                        if fe.any_down {
+                            cb(cx, ButtonLogicEvent::Down, area);
+                        }
+                        else {
+                            cb(cx, ButtonLogicEvent::Over, area);
+                        }
                     },
                     HoverState::Out => cb(cx, ButtonLogicEvent::Default, area),
                     _ => ()

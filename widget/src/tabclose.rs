@@ -89,15 +89,19 @@ impl TabClose {
                 return ButtonEvent::Down;
             },
             Event::FingerHover(fe) => {
-                cx.set_hover_mouse_cursor(MouseCursor::Hand);
                 match fe.hover_state {
-                    HoverState::In => if fe.any_down {
-                        self.animator.play_anim(cx, Self::anim_down().get(cx))
-                    }
-                    else {
-                        self.animator.play_anim(cx, Self::anim_over().get(cx))
+                    HoverState::In => {
+                        cx.set_hover_mouse_cursor(MouseCursor::Hand);
+                        if fe.any_down {
+                            self.animator.play_anim(cx, Self::anim_down().get(cx))
+                        }
+                        else {
+                            self.animator.play_anim(cx, Self::anim_over().get(cx))
+                        }
                     },
-                    HoverState::Out => self.animator.play_anim(cx, Self::anim_default().get(cx)),
+                    HoverState::Out => {
+                        self.animator.play_anim(cx, Self::anim_default().get(cx))
+                    },
                     _ => ()
                 }
             },

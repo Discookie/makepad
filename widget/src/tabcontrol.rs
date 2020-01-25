@@ -122,6 +122,17 @@ impl TabControl {
                 _ => ()
             }
         };
+
+        // handle cursor for the rest of the view
+        match event.hits(cx, self.tabs_view.get_view_area(cx), HitOpt::default()) {
+            Event::FingerHover(fe) => {
+                if fe.hover_state == HoverState::In {
+                    cx.set_hover_mouse_cursor(MouseCursor::Default);
+                }
+            },
+            _ => ()
+        }
+
         match tab_control_event {
             TabControlEvent::TabSelect {tab_id} => {
                 self._focussed = true;
