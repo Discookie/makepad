@@ -49,7 +49,6 @@ pub struct Win32Window {
     
     pub last_key_mod: KeyModifiers,
     pub ime_spot: Vec2,
-    pub current_cursor: MouseCursor,
     pub last_mouse_pos: Vec2,
     pub fingers_down: Vec<bool>,
     pub ignore_wmsize: usize,
@@ -367,7 +366,6 @@ impl Win32Window {
             time_start: win32_app.time_start,
             last_key_mod: KeyModifiers::default(),
             ime_spot: Vec2::default(),
-            current_cursor: MouseCursor::Default,
             last_mouse_pos: Vec2::default(),
             fingers_down: fingers_down,
             ignore_wmsize: 0,
@@ -467,6 +465,9 @@ impl Win32Window {
                 let ycoord = (lparam >> 16) as u16 as i16 as i32;
                 let xcoord = (lparam & 0xffff) as u16 as i16 as i32;
                 let mut rect = RECT {left: 0, top: 0, bottom: 0, right: 0};
+                // hardcoded win10 numbers
+                const TITLEBAR: i32 = 28;
+                const CAPTION_BTNS: i32 = 138;
                 const EDGE: i32 = 8;
                 winuser::GetWindowRect(hwnd, &mut rect);
                 if xcoord < rect.left + EDGE {
@@ -528,10 +529,10 @@ impl Win32Window {
                     },
                     _ => ()
                 }
-                if ycoord < rect.top + 50 && xcoord < rect.left + 50 {
+                if ycoord < rect.top + TITLEBAR && xcoord < rect.left + TITLEBAR {
                     return winuser::HTSYSMENU;
                 }
-                if ycoord < rect.top + 50 && xcoord < rect.right - 300 {
+                if ycoord < rect.top + TITLEBAR && xcoord < rect.right - CAPTION_BTNS {
                     return winuser::HTCAPTION;
                 }
                 return winuser::HTCLIENT;
@@ -549,6 +550,8 @@ impl Win32Window {
                         dwHoverTime: 0
                     };
                     winuser::TrackMouseEvent(&mut tme);
+                    // refresh cursor on re-enter
+                    (*window.win32_app).current_cursor = MouseCursor::Default;
                 }
                 window.send_finger_hover_and_move(
                     window.get_mouse_pos_from_lparam(lparam),
@@ -568,7 +571,7 @@ impl Win32Window {
                     modifiers: Self::get_key_modifiers(),
                     time: window.time_now()
                 })]);
-                (*window.win32_app).current_cursor = MouseCursor::Hidden;
+                //(*window.win32_app).current_cursor = MouseCursor::Hidden;
             },
             winuser::WM_MOUSEWHEEL => {
                 let delta = (wparam>>16) as u16 as i16 as f32;
