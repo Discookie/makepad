@@ -560,9 +560,9 @@ impl FileTree {
                     drag_nodes = true;
                 },
                 Event::FingerHover(fe) => {
-                    cx.set_hover_mouse_cursor(MouseCursor::Hand);
                     match fe.hover_state {
                         HoverState::In => {
+                            cx.set_hover_mouse_cursor(MouseCursor::Hand);
                             node_draw.animator.play_anim(cx, FileTreeItemDraw::get_over_anim(cx, counter, node_draw.marked != 0));
                         },
                         HoverState::Out => {
