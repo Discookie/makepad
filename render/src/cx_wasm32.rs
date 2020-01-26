@@ -192,7 +192,7 @@ impl Cx {
                 9 => { // finger hover
                     self.finger_over_last_area = Area::Empty;
                     let abs = Vec2 {x: to_wasm.mf32(), y: to_wasm.mf32()};
-                    self.hover_mouse_cursor = None;
+                    //self.hover_mouse_cursor = None;
                     let modifiers = unpack_key_modifier(to_wasm.mu32());
                     let time = to_wasm.mf64();
                     self.call_event_handler(&mut event_handler, &mut Event::FingerHover(FingerHoverEvent {
