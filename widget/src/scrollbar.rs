@@ -315,9 +315,9 @@ impl ScrollBar {
                 },
                 Event::FingerHover(fe) => {
                     if self._drag_point.is_none() {
-                        cx.set_hover_mouse_cursor(MouseCursor::Default);
                         match fe.hover_state {
                             HoverState::In => {
+                                cx.set_hover_mouse_cursor(MouseCursor::Default);
                                 self.animator.play_anim(cx, Self::anim_over().get(cx));
                             },
                             HoverState::Out => {

@@ -979,8 +979,10 @@ impl TextEditor {
             Event::FingerDown(fe) => {
                 self.handle_finger_down(cx, &fe, text_buffer);
             },
-            Event::FingerHover(_fe) => {
-                cx.set_hover_mouse_cursor(MouseCursor::Text);
+            Event::FingerHover(fe) => {
+                if let HoverState::In = fe.hover_state {
+                    cx.set_hover_mouse_cursor(MouseCursor::Text);
+                }
             },
             Event::FingerUp(fe) => {
                 self.handle_finger_up(cx, &fe, text_buffer);
