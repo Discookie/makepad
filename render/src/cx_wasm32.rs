@@ -195,7 +195,7 @@ impl Cx {
                     //self.hover_mouse_cursor = None;
                     let modifiers = unpack_key_modifier(to_wasm.mu32());
                     let time = to_wasm.mf64();
-                    self.call_event_handler(&mut event_handler, &mut Event::FingerHover(FingerHoverEvent {
+                    let mut event = Event::FingerHover(FingerHoverEvent {
                         any_down: false,
                         window_id: 0,
                         abs: abs,
@@ -205,11 +205,14 @@ impl Cx {
                         hover_state: HoverState::Over,
                         modifiers: modifiers,
                         time: time
-                    }));
+                    });
+                    self.call_event_handler(&mut event_handler, &mut event);
                     self._finger_over_last_area = self.finger_over_last_area;
-                    //if fe.hover_state == HoverState::Out {
-                    //    self.hover_mouse_cursor = None;
-                    // }
+                    if let Event::FingerHover(fe) = event {
+                        if fe.hover_state == HoverState::Out || !fe.handled {
+                            self.hover_mouse_cursor = None;
+                        }
+                    }
                 },
                 10 => { // finger scroll
                     let abs = Vec2 {x: to_wasm.mf32(), y: to_wasm.mf32()};

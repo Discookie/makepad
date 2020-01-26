@@ -100,11 +100,11 @@ impl Cx {
             Event::FingerUp(fe) => { // decapture automatically
                 self.captured_fingers[fe.digit] = Area::Empty;
             },
-            Event::FingerHover(_fe) => { // new last area finger over
+            Event::FingerHover(fe) => { // new last area finger over
                 self._finger_over_last_area = self.finger_over_last_area;
-                //if fe.hover_state == HoverState::Out{
-                //    self.hover_mouse_cursor = None;
-                //}
+                if fe.hover_state == HoverState::Out || !fe.handled {
+                    self.hover_mouse_cursor = None;
+                }
             },
             Event::FingerScroll(_) => {
                 // check for anything being paint or dra dirty

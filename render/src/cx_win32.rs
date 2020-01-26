@@ -551,7 +551,8 @@ impl Win32Window {
                     };
                     winuser::TrackMouseEvent(&mut tme);
                     // refresh cursor on re-enter
-                    (*window.win32_app).current_cursor = MouseCursor::Default;
+                    (*window.win32_app).set_mouse_cursor(MouseCursor::Default);
+                    //(*window.win32_app).current_cursor = MouseCursor::Default;
                 }
                 window.send_finger_hover_and_move(
                     window.get_mouse_pos_from_lparam(lparam),
