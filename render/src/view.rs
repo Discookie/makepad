@@ -27,7 +27,7 @@ impl View {
         }
     }
     
-    pub fn proto(_cx: &mut Cx) -> Self {
+    pub fn new(_cx: &mut Cx) -> Self {
         Self {
             is_clipped: true,
             is_overlay: false,
@@ -195,6 +195,17 @@ impl View {
         }
         else {
             cx.redraw_child_area(Area::All)
+        }
+    }
+    
+    pub fn redraw_view_parent_area(&self, cx: &mut Cx) {
+        if let Some(view_id) = self.view_id {
+            let cxview = &cx.views[view_id];
+            let area = Area::View(ViewArea {view_id: view_id, redraw_id: cxview.redraw_id});
+            cx.redraw_parent_area(area);
+        }
+        else {
+            cx.redraw_parent_area(Area::All)
         }
     }
     

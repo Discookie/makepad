@@ -1,5 +1,5 @@
 use makepad_render::*;
-use serde::*;
+use makepad_tinyserde::*;
 use crate::widgetstyle::*;
 
 #[derive(Clone)]
@@ -23,7 +23,7 @@ pub struct Splitter {
     pub _hit_state_margin: Option<Margin>,
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, SerRon, DeRon)]
 pub enum SplitterAlign {
     First,
     Last,
@@ -38,7 +38,7 @@ pub enum SplitterEvent {
 }
 
 impl Splitter {
-    pub fn proto(cx: &mut Cx) -> Self {
+    pub fn new(cx: &mut Cx) -> Self {
         Self {
             axis: Axis::Vertical,
             align: SplitterAlign::First,
@@ -54,8 +54,8 @@ impl Splitter {
             realign_dist: 30.,
             split_size: 2.0,
             min_size: 25.0,
-            split_view: View::proto(cx),
-            bg: Quad::proto(cx),
+            split_view: View::new(cx),
+            bg: Quad::new(cx),
             animator: Animator::default(),
         }
     }

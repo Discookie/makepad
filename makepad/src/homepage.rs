@@ -24,21 +24,21 @@ pub enum EmailState {
 }
 
 impl HomePage {
-    pub fn proto(cx: &mut Cx) -> Self {
+    pub fn new(cx: &mut Cx) -> Self {
         Self {
-            view: ScrollView::proto(cx),
-            text: Text::proto(cx),
-            shadow: ScrollShadow::proto(cx),
-            send_mail_button: NormalButton::proto(cx),
+            view: ScrollView::new(cx),
+            text: Text::new(cx),
+            shadow: ScrollShadow::new(cx),
+            send_mail_button: NormalButton::new(cx),
             email_signal: cx.new_signal(),
-            email_input: TextInput::proto(cx, TextInputOptions {
+            email_input: TextInput::new(cx, TextInputOptions {
                 multiline: false,
                 read_only: false,
                 empty_message: "Enter email".to_string()
             }),
             email_state: EmailState::Empty,
             example_texts: ElementsCounted::new(
-                TextInput::proto(cx, TextInputOptions {
+                TextInput::new(cx, TextInputOptions {
                     multiline: true,
                     read_only: true,
                     empty_message: "".to_string()
@@ -86,14 +86,16 @@ impl HomePage {
     
     pub fn handle_home_page(&mut self, cx: &mut Cx, event: &mut Event) {
         if let Event::Signal(sig) = event {
-            if sig.signal == self.email_signal {
-                if sig.status == Cx::status_http_send_ok(){
-                    self.email_state = EmailState::OkSending;
+            if let Some(statusses) = sig.signals.get(&self.email_signal) {
+                for status in statusses{
+                    if *status == Cx::status_http_send_ok(){
+                        self.email_state = EmailState::OkSending;
+                    }
+                    else if *status == Cx::status_http_send_fail(){
+                        self.email_state = EmailState::ErrorSending;
+                    }
+                    self.view.redraw_view_area(cx);
                 }
-                else if sig.status == Cx::status_http_send_fail(){
-                    self.email_state = EmailState::ErrorSending;
-                }
-                self.view.redraw_view_area(cx);
             }
         }
         if let TextEditorEvent::Change = self.email_input.handle_text_input(cx, event) {

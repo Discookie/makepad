@@ -10,20 +10,20 @@ pub struct ScrollView{
 
 impl ScrollView{
 
-    pub fn proto(cx: &mut Cx) -> Self {
+    pub fn new(cx: &mut Cx) -> Self {
         Self {
-            view: View::proto(cx),
-            scroll_h: Some(ScrollBar::proto(cx)),
+            view: View::new(cx),
+            scroll_h: Some(ScrollBar::new(cx)),
             scroll_v: Some(ScrollBar {
                 smoothing: Some(0.15),
-                ..ScrollBar::proto(cx)
+                ..ScrollBar::new(cx)
             }),
         }
     }
     
     pub fn proto_no_scroll(cx: &mut Cx) -> Self {
         Self {
-            view: View::proto(cx),
+            view: View::new(cx),
             scroll_h: None,
             scroll_v: None
         }
@@ -117,20 +117,29 @@ impl ScrollView{
     
     pub fn scroll_into_view(&mut self, cx: &mut Cx, rect: Rect) {
         if let Some(scroll_h) = &mut self.scroll_h {
-            scroll_h.scroll_into_view(cx, rect.x, rect.w);
+            scroll_h.scroll_into_view(cx, rect.x, rect.w, true);
         }
         if let Some(scroll_v) = &mut self.scroll_v {
-            scroll_v.scroll_into_view(cx, rect.y, rect.h);
+            scroll_v.scroll_into_view(cx, rect.y, rect.h, true);
+        }
+    }
+    
+    pub fn scroll_into_view_no_smooth(&mut self, cx: &mut Cx, rect: Rect) {
+        if let Some(scroll_h) = &mut self.scroll_h {
+            scroll_h.scroll_into_view(cx, rect.x, rect.w, false);
+        }
+        if let Some(scroll_v) = &mut self.scroll_v {
+            scroll_v.scroll_into_view(cx, rect.y, rect.h, false);
         }
     }
     
     pub fn scroll_into_view_abs(&mut self, cx: &mut Cx, rect: Rect) {
         let self_rect = self.get_rect(cx); 
         if let Some(scroll_h) = &mut self.scroll_h {
-            scroll_h.scroll_into_view(cx, rect.x - self_rect.x, rect.w);
+            scroll_h.scroll_into_view(cx, rect.x - self_rect.x, rect.w, true);
         }
         if let Some(scroll_v) = &mut self.scroll_v {
-            scroll_v.scroll_into_view(cx, rect.y  - self_rect.y, rect.h);
+            scroll_v.scroll_into_view(cx, rect.y  - self_rect.y, rect.h, true);
         }
     }
     

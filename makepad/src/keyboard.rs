@@ -35,11 +35,11 @@ impl KeyType {
 }
 
 impl Keyboard {
-    pub fn proto(cx: &mut Cx) -> Self {
-        Self {
-            view: ScrollView::proto(cx),
+    pub fn new(cx: &mut Cx) -> Self {
+        Self { 
+            view: ScrollView::new(cx),
             buttons: Elements::new(NormalButton {
-                ..NormalButton::proto(cx)
+                ..NormalButton::new(cx)
             }),
             modifiers: KeyModifiers::default(),
             key_down: None,
@@ -50,7 +50,7 @@ impl Keyboard {
     
     fn send_textbuffers_update(&mut self, cx: &mut Cx, app_storage: &mut AppStorage) {
         // clear all files we missed
-        for (_, atb) in &mut app_storage.text_buffers {
+        for atb in &mut app_storage.text_buffers {
             atb.text_buffer.keyboard.modifiers = self.modifiers.clone();
             atb.text_buffer.keyboard.key_down = self.key_down.clone();
             atb.text_buffer.keyboard.key_up = self.key_up.clone();

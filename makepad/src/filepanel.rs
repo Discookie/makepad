@@ -13,19 +13,19 @@ pub struct FilePanel {
     pub file_tree: FileTree,
     pub new_file_btn: NormalButton,
 } 
-
+/*
 #[derive(Clone, PartialEq)]
 pub enum FilePanelEvent {
     NewFile {name: String, template: String},
     Cancel,
     None,
 }
-
+*/
 impl FilePanel {
-    pub fn proto(cx: &mut Cx) -> Self {
+    pub fn new(cx: &mut Cx) -> Self {
         Self {
-            file_tree: FileTree::proto(cx),
-            new_file_btn: NormalButton::proto(cx),
+            file_tree: FileTree::new(cx), 
+            new_file_btn: NormalButton::new(cx),
         }
     }
     
@@ -34,7 +34,7 @@ impl FilePanel {
         self.file_tree.handle_file_tree(cx, event)
     }
     
-    pub fn draw_tab_buttons(&mut self, _cx: &mut Cx){
+    pub fn draw_file_panel_tab(&mut self, _cx: &mut Cx){
         //self.new_file_btn.draw_button(cx, "HELLO");
     }
     

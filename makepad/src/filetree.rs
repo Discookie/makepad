@@ -174,18 +174,18 @@ impl<'a> FileWalker<'a> {
 }
 
 impl FileTreeItemDraw {
-    fn proto(cx: &mut Cx) -> Self {
+    fn new(cx: &mut Cx) -> Self {
         Self {
-            tree_text: Text {z: 0.001, ..Text::proto(cx)},
-            node_bg: Quad::proto(cx),
+            tree_text: Text {z: 0.001, ..Text::new(cx)},
+            node_bg: Quad::new(cx),
             //node_layout: LayoutFileTreeNode::id(),
             filler: Quad {
                 z: 0.001,
-                ..Quad::proto(cx)
+                ..Quad::new(cx)
             },
             shadow: ScrollShadow {
                 z: 0.01,
-                ..ScrollShadow::proto(cx)
+                ..ScrollShadow::new(cx)
             },
             node_layout: Layout::default(),
             row_height: 0.,
@@ -262,12 +262,12 @@ impl FileTreeItemDraw {
                 if anim_pos<-0.5 {
                     df_move_to(0.5 * w, line_vec.x * h);
                     df_line_to(0.5 * w, line_vec.y * h);
-                    return df_stroke(color, 1.);
+                    return df_stroke(color*0.5, 1.);
                 }
                 else { // its a folder
                     df_box(0. * w, 0.35 * h, 0.87 * w, 0.39 * h, 0.75);
                     df_box(0. * w, 0.28 * h, 0.5 * w, 0.3 * h, 1.);
-                    df_union();
+                    df_union(); 
                     // ok so.
                     return df_fill(color);
                 }
@@ -319,28 +319,28 @@ impl FileTreeItemDraw {
 }
 
 impl FileTree {
-    pub fn proto(cx: &mut Cx) -> Self {
+    pub fn new(cx: &mut Cx) -> Self {
         Self {
             //row_height: 20.,
             //font_size: 8.0,
-            item_draw: FileTreeItemDraw::proto(cx),
+            item_draw: FileTreeItemDraw::new(cx),
             root_node: FileNode::Folder {name: "".to_string(), state: NodeState::Open, draw: None, folder: vec![
                 FileNode::File {name: "loading...".to_string(), draw: None},
             ]},
             drag_bg: Quad {
                 shader: cx.add_shader(Self::def_drag_bg_shader(), "FileTree.drag_bg"),
-                ..Quad::proto(cx)
+                ..Quad::new(cx)
             },
             view: ScrollView {
                 scroll_v: Some(ScrollBar {
                     smoothing: Some(0.25),
-                    ..ScrollBar::proto(cx)
+                    ..ScrollBar::new(cx)
                 }),
-                ..ScrollView::proto(cx)
+                ..ScrollView::new(cx)
             },
             drag_view: View {
                 is_overlay: true,
-                ..View::proto(cx)
+                ..View::new(cx)
             },
             _drag_move: None,
             _shadow_area: Area::Empty

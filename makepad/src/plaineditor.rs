@@ -1,29 +1,51 @@
-use makepad_render::*; 
-use makepad_widget::*; 
+use makepad_render::*;
+use makepad_widget::*;
+use crate::searchindex::*;
+use crate::appstorage::*;
 
-#[derive(Clone)]  
+#[derive(Clone)]
 pub struct PlainEditor {
     pub text_editor: TextEditor,
 }
 
 impl PlainEditor {
-    pub fn proto(cx: &mut Cx) -> Self {
+    pub fn new(cx: &mut Cx) -> Self {
         let editor = Self {
-            text_editor: TextEditor{
+            text_editor: TextEditor {
                 folding_depth: 3,
-                ..TextEditor::proto(cx)
+                ..TextEditor::new(cx)
             }
         };
-        editor
+        editor 
     }
     
-    pub fn handle_plain_editor(&mut self, cx: &mut Cx, event: &mut Event,  text_buffer: &mut TextBuffer) -> TextEditorEvent {
-        let ce = self.text_editor.handle_text_editor(cx, event, text_buffer);
+    pub fn handle_plain_editor(&mut self, cx: &mut Cx, event: &mut Event, atb: &mut AppTextBuffer) -> TextEditorEvent {
+        let ce = self.text_editor.handle_text_editor(cx, event, &mut atb.text_buffer);
         ce
     }
     
-    pub fn draw_plain_editor(&mut self, cx: &mut Cx, text_buffer: &mut TextBuffer) {
-        if text_buffer.needs_token_chunks() && text_buffer.lines.len() >0{
+    pub fn draw_plain_editor(&mut self, cx: &mut Cx, atb: &mut AppTextBuffer, search_index: Option<&mut SearchIndex>) {
+        PlainTokenizer::update_token_chunks(&mut atb.text_buffer, search_index);
+        if self.text_editor.begin_text_editor(cx, &mut atb.text_buffer).is_err() {return}
+        
+        for (index, token_chunk) in atb.text_buffer.token_chunks.iter_mut().enumerate() {
+            self.text_editor.draw_chunk(cx, index, &atb.text_buffer.flat_text, token_chunk, &atb.text_buffer.markers);
+        }
+        
+        self.text_editor.end_text_editor(cx, &mut atb.text_buffer);
+    }
+}
+
+pub struct PlainTokenizer {
+}
+
+impl PlainTokenizer {
+    pub fn new() -> PlainTokenizer {
+        PlainTokenizer {}
+    }
+    
+    pub fn update_token_chunks(text_buffer: &mut TextBuffer, mut _search_index: Option<&mut SearchIndex>) {
+        if text_buffer.needs_token_chunks() && text_buffer.lines.len() >0 {
             let mut state = TokenizerState::new(&text_buffer.lines);
             let mut tokenizer = PlainTokenizer::new();
             let mut pair_stack = Vec::new();
@@ -36,39 +58,22 @@ impl PlainEditor {
                 }
             }
         }
-        
-        if self.text_editor.begin_text_editor(cx, text_buffer).is_err() {return}
-        
-        for (index, token_chunk) in text_buffer.token_chunks.iter_mut().enumerate(){
-            self.text_editor.draw_chunk(cx, index, &text_buffer.flat_text, token_chunk, &text_buffer.messages.cursors);
-        }
-        
-        self.text_editor.end_text_editor(cx, text_buffer);
-    }
-}
-
-pub struct PlainTokenizer {
-}
-
-impl PlainTokenizer {
-    pub fn new() -> PlainTokenizer {
-        PlainTokenizer {}
     }
     
     pub fn next_token<'a>(&mut self, state: &mut TokenizerState<'a>, chunk: &mut Vec<char>, _token_chunks: &Vec<TokenChunk>) -> TokenType {
         let start = chunk.len();
         loop {
             if state.next == '\0' {
-		if (chunk.len()-start)>0 { 
+                if (chunk.len() - start)>0 {
                     return TokenType::Identifier
                 }
-		state.advance();
+                state.advance();
                 chunk.push(' ');
                 return TokenType::Eof
             }
             else if state.next == '\n' {
                 // output current line
-                if (chunk.len()-start)>0 {
+                if (chunk.len() - start)>0 {
                     return TokenType::Identifier
                 }
                 
@@ -77,7 +82,7 @@ impl PlainTokenizer {
                 return TokenType::Newline
             }
             else if state.next == ' ' {
-                if (chunk.len()-start)>0 {
+                if (chunk.len() - start)>0 {
                     return TokenType::Identifier
                 }
                 while state.next == ' ' {
