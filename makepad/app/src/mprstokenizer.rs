@@ -1,122 +1,205 @@
-use makepad_render::*;
 use makepad_widget::*;
-use crate::searchindex::*;
-use crate::appstorage::*;
 
-#[derive(Clone)]
-pub struct RustEditor {
-    pub text_editor: TextEditor,
+pub struct TokenParserItem {
+    pub chunk: Vec<char>,
+    pub token_type: TokenType,
 }
 
-impl RustEditor {
-    pub fn new(cx: &mut Cx) -> Self {
-        let editor = Self {
-            text_editor: TextEditor::new(cx),
-        };
-        //tab.animator.default = tab.anim_default(cx);
-        editor
+pub struct TokenParser<'a> {
+    pub tokens: &'a Vec<TokenChunk>,
+    pub flat_text: &'a Vec<char>,
+    pub index: usize,
+    pub next_index: usize
+}
+
+impl <'a>TokenParser<'a> {
+    pub fn new(flat_text: &'a Vec<char>, token_chunks: &'a Vec<TokenChunk>) -> TokenParser<'a> {
+        TokenParser {
+            tokens: token_chunks,
+            flat_text: flat_text,
+            index: 0,
+            next_index: 0
+        }
     }
     
-    pub fn handle_rust_editor(&mut self, cx: &mut Cx, event: &mut Event, atb: &mut AppTextBuffer, search_index: Option<&mut SearchIndex>) -> TextEditorEvent {
-        let ce = self.text_editor.handle_text_editor(cx, event, &mut atb.text_buffer);
-        match ce {
-            TextEditorEvent::Change => {
-                RustTokenizer::update_token_chunks(atb, search_index);
-            },
-            TextEditorEvent::AutoFormat => {
-                let formatted = RustTokenizer::auto_format(&mut atb.text_buffer, false).out_lines;
-                self.text_editor.cursors.replace_lines_formatted(formatted, &mut atb.text_buffer);
-                self.text_editor.view.redraw_view_area(cx);
-            },
-            _ => ()
+    pub fn advance(&mut self) -> bool {
+        if self.next_index >= self.tokens.len() {
+            return false
         }
-        ce
+        self.index = self.next_index;
+        self.next_index += 1;
+        return true;
     }
     
-    pub fn draw_rust_editor(&mut self, cx: &mut Cx, atb: &mut AppTextBuffer, search_index: Option<&mut SearchIndex>) {
-        RustTokenizer::update_token_chunks(atb, search_index);
-        
-        if self.text_editor.begin_text_editor(cx, &mut atb.text_buffer).is_err() {return}
-        
-        for (index, token_chunk) in atb.text_buffer.token_chunks.iter_mut().enumerate() {
-            self.text_editor.draw_chunk(cx, index, &atb.text_buffer.flat_text, token_chunk, &atb.text_buffer.markers);
+    pub fn eat_should_ignore(&mut self)->bool{
+        while self.cur_type().should_ignore(){
+            if !self.advance(){
+                return false
+            }
         }
-        
-        self.text_editor.end_text_editor(cx, &mut atb.text_buffer);
+        return true
+    }
+    
+    pub fn eat(&mut self, what:&str)->bool{
+        // eat as many ignorable tokens
+        if !self.eat_should_ignore(){
+            return false
+        }
+        // then match what in our token
+        let chunk = &self.tokens[self.index];
+        let mut off = chunk.offset;
+        for c in what.chars(){
+            if off - chunk.offset > chunk.len{
+                return false
+            }
+            if self.flat_text[off] != c{
+                return false;
+            }
+            off += 1;
+        }
+        if off - chunk.offset != chunk.len{
+            return false
+        }
+        if !self.eat_should_ignore(){
+            return false
+        }
+        self.advance();
+        true
+    }
+    
+    pub fn prev_type(&self) -> TokenType {
+        if self.index > 0 {
+            self.tokens[self.index - 1].token_type
+        }
+        else {
+            TokenType::Unexpected
+        }
+    }
+    
+    pub fn cur_type(&self) -> TokenType {
+        self.tokens[self.index].token_type
+    }
+    
+    pub fn cur_offset(&self) -> usize{
+        self.tokens[self.index].offset
+    }
+
+    pub fn cur_pair_offset(&self) -> usize {
+        self.tokens[self.tokens[self.index].pair_token].offset
+    }
+
+    
+    pub fn next_type(&self) -> TokenType {
+        if self.index < self.tokens.len() - 1 {
+            self.tokens[self.index + 1].token_type
+        }
+        else {
+            TokenType::Unexpected
+        }
+    }
+    
+    pub fn prev_char(&self) -> char {
+        if self.index > 0 {
+            let len = self.tokens[self.index - 1].len;
+            let ch = self.flat_text[self.tokens[self.index - 1].offset];
+            if len == 1 || ch == ' ' {
+                return ch
+            }
+        }
+        '\0'
+    }
+    
+    pub fn cur_char(&self) -> char {
+        let len = self.tokens[self.index].len;
+        let ch = self.flat_text[self.tokens[self.index].offset];
+        if len == 1 || ch == ' ' {
+            return ch
+        }
+        '\0'
+    }
+    
+    pub fn cur_chunk(&self) -> &[char] {
+        let offset = self.tokens[self.index].offset;
+        let len = self.tokens[self.index].len;
+        &self.flat_text[offset..(offset + len)]
+    }
+    
+    pub fn next_char(&self) -> char {
+        if self.index < self.tokens.len() - 1 {
+            let len = self.tokens[self.index + 1].len;
+            let ch = self.flat_text[self.tokens[self.index + 1].offset];
+            if len == 1 || ch == ' ' {
+                return ch
+            }
+        }
+        '\0'
     }
 }
 
-pub struct RustTokenizer {
+pub struct FormatOutput {
+    pub out_lines: Vec<Vec<char >>
+}
+
+impl FormatOutput {
+    pub fn new() -> FormatOutput {
+        FormatOutput {
+            out_lines: Vec::new()
+        }
+    }
+    
+    pub fn indent(&mut self, indent_depth: usize) {
+        let last_line = self.out_lines.last_mut().unwrap();
+        for _ in 0..indent_depth {
+            last_line.push(' ');
+        }
+    }
+    
+    pub fn strip_space(&mut self) {
+        let last_line = self.out_lines.last_mut().unwrap();
+        if last_line.len()>0 && *last_line.last().unwrap() == ' ' {
+            last_line.pop();
+        }
+    }
+    
+    pub fn new_line(&mut self) {
+        self.out_lines.push(Vec::new());
+    }
+    
+    pub fn extend(&mut self, chunk: &[char]) {
+        let last_line = self.out_lines.last_mut().unwrap();
+        last_line.extend_from_slice(chunk);
+    }
+    
+    pub fn add_space(&mut self) {
+        let last_line = self.out_lines.last_mut().unwrap();
+        if last_line.len()>0 {
+            if *last_line.last().unwrap() != ' ' {
+                last_line.push(' ');
+            }
+        }
+        else {
+            last_line.push(' ');
+        }
+    }
+    
+}
+
+
+pub struct MprsTokenizer {
     pub comment_single: bool,
     pub comment_depth: usize,
+    pub in_string_code: bool,
     pub in_string: bool
 }
 
+impl MprsTokenizer {
 
-impl RustTokenizer {
-    pub fn update_token_chunks(atb: &mut AppTextBuffer, mut search_index: Option<&mut SearchIndex>) {
-        if atb.text_buffer.needs_token_chunks() && atb.text_buffer.lines.len() >0 {
-            let mut state = TokenizerState::new(&atb.text_buffer.lines);
-            let mut tokenizer = RustTokenizer::new();
-            let mut pair_stack = Vec::new();
-            loop {
-                let offset = atb.text_buffer.flat_text.len();
-                let token_type = tokenizer.next_token(&mut state, &mut atb.text_buffer.flat_text, &atb.text_buffer.token_chunks);
-                if TokenChunk::push_with_pairing(&mut atb.text_buffer.token_chunks, &mut pair_stack, state.next, offset, atb.text_buffer.flat_text.len(), token_type) {
-                    atb.text_buffer.was_invalid_pair = true;
-                }
-                if token_type == TokenType::Eof {
-                    break
-                }
-                if let Some(search_index) = search_index.as_mut() {
-                    search_index.new_rust_token(&atb);
-                }
-            }
-            if pair_stack.len() > 0 {
-                atb.text_buffer.was_invalid_pair = true;
-            }
-            
-            // ok now lets write a diff with the previous one
-            //let mut new_index = 0;
-            //let mut old_index = 0;
-            /*
-            loop {
-                let new_tok = &atb.text_buffer.token_chunks[new_index];
-                let old_tok = &atb.text_buffer.old_token_chunks[old_index];
-                if let TokenType::Macro = new_tok.token_type {
-                    fn tok_cmp(name: &str, tok: &[char]) -> bool {
-                        for (index, c) in name.chars().enumerate() {
-                            if tok[index] != c {
-                                return false
-                            }
-                        }
-                        return true
-                    }
-                    let tok = &atb.text_buffer.flat_text[new_tok.offset..new_tok.offset + new_tok.len];
-                    if tok_cmp("pick", tok) {
-                        // parse the next tokens as a pick
-                        
-                    }
-                }
-                if new_index < atb.text_buffer.token_chunks.len() {
-                    new_index += 1;
-                }
-                else {
-                    break
-                }
-                // just hold at the end
-                if old_index < atb.text_buffer.old_token_chunks.len() - 1 {
-                    old_index += 1;
-                }
-            }*/
-        }
-    }
-    
-    pub fn new() -> RustTokenizer {
-        RustTokenizer {
+    pub fn new() -> MprsTokenizer {
+        MprsTokenizer {
             comment_single: false,
             comment_depth: 0,
-            in_string: false
+            in_string: false,
+            in_string_code: false
         }
     }
     
@@ -290,7 +373,22 @@ impl RustTokenizer {
                     }
                 },
                 '"' => { // parse string
+                    // we have to scan back, skip all whitespacey things
+                    // see if we find a shader!(
+                    // we have to backparse.
+                        
+                    
                     chunk.push(state.cur);
+
+                    if chunk.len()>2 && chunk[chunk.len()-3] == '!' && chunk[chunk.len()-2] == '{'{
+                        self.in_string_code = true;
+                        return TokenType::ParenOpen;
+                    } 
+                    if state.next == '}' && self.in_string_code{
+                        self.in_string_code = false;
+                        return TokenType::ParenClose;
+                    }
+
                     state.prev = '\0';
                     while state.next != '\0' && state.next != '\n' {
                         if state.next != '"' || state.prev != '\\' && state.cur == '\\' && state.next == '"' {
@@ -849,14 +947,14 @@ impl RustTokenizer {
     }
     
     // because rustfmt is such an insane shitpile to compile or use as a library, here is a stupid version.
-    pub fn auto_format(text_buffer: &mut TextBuffer, force_newlines: bool) -> FormatOutput {
+    pub fn auto_format(flat_text:&Vec<char>, token_chunks:&Vec<TokenChunk>, force_newlines: bool) -> FormatOutput {
         
         // extra spacey setting that rustfmt seems to do, but i don't like
         let extra_spacey = false;
         let pre_spacey = true;
         
         let mut out = FormatOutput::new();
-        let mut tp = TokenParser::new(&text_buffer.flat_text, &text_buffer.token_chunks);
+        let mut tp = TokenParser::new(flat_text, token_chunks);
         
         struct ParenStack {
             expecting_newlines: bool,
@@ -942,7 +1040,7 @@ impl RustTokenizer {
                     }
                     if pre_spacey && is_curly && !first_on_line && tp.prev_type() != TokenType::Namespace {
                         if tp.prev_char() != ' ' && tp.prev_char() != '{'
-                            && tp.prev_char() != '[' && tp.prev_char() != '(' && tp.prev_char() != ':' {
+                            && tp.prev_char() != '[' && tp.prev_char() != '(' && tp.prev_char() != ':' && tp.prev_char() != '!'{
                             out.add_space();
                         }
                     }
